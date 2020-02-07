@@ -20,6 +20,7 @@ public class BigBoid : MonoBehaviour
     public Transform targetTransform;
 
     public bool arriveEnabled = false;
+    public bool controlEnabled = false;
     public float slowingDistance = 10;
 
     [Range(0.0f, 10.0f)]
@@ -31,6 +32,13 @@ public class BigBoid : MonoBehaviour
         
     }
 
+    public Vector3 Control()
+    {
+        Vector3 f = Vector3.zero;
+        f.x = Input.GetAxis("Horizontal");
+        f.y = Input.GetAxis("Vertical");
+        return f;
+    }
     public void OnDrawGizmos()
     {
 
@@ -77,6 +85,10 @@ public class BigBoid : MonoBehaviour
         if (arriveEnabled)
         {
             force += Arrive(target);
+        }
+        if(controlEnabled)
+        {
+            force += Control();
         }
         return force;
     }
