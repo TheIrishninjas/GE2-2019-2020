@@ -33,6 +33,9 @@ public class BigBoid : MonoBehaviour
         projectedRight.x = f.x;
         return f;
     }
+
+    public float slowingDistance = 10;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -40,14 +43,30 @@ public class BigBoid : MonoBehaviour
 
     public void OnDrawGizmos()
     {
+
         Gizmos.color = Color.green;
         Gizmos.DrawSphere(target, 0.1f);
 
         Gizmos.color = Color.blue;
-        Gizmos.DrawLine(transform.position, transform.position + force);
+        Gizmos.DrawLine(transform.position, transform.position + acceleration);
 
         Gizmos.color = Color.yellow;
         Gizmos.DrawLine(transform.position, transform.position + velocity);
+
+        Gizmos.color = Color.magenta;
+        Gizmos.DrawWireSphere(targetTransform.position, slowingDistance);
+    }
+
+    Vector3 Arrive(Vector3 target)
+    {
+        Vector3 toTarget = target - transform.position;
+        float dist = toTarget.magnitude;
+
+        float ramped = (dist / slowingDistance) * maxSpeed;
+        float clamped = Mathf.Min(ramped, maxSpeed);
+        Vector3 desired = (toTarget / dist) * clamped;
+
+        return desired - velocity;
     }
 
     Vector3 Seek(Vector3 target)
@@ -58,22 +77,16 @@ public class BigBoid : MonoBehaviour
         return desired - velocity;
     }
 
-    Vector3 Arrive(Vector3 target)
-    {
-        Vector3 toTarget = target - transform.position;
-        float dist = toTarget.magnitude;
-        float ramped = dist / slowingDist * maxSpeed;
-        float clamped = Mathf.Min(ramped, maxSpeed);
-        Vector3 desired = (toTarget / dist) * clamped;
-        return desired;
-    }
-
     public Vector3 CalculateForce()
     {
         Vector3 force = Vector3.zero;
         if (seekEnabled)
         { 
                force += Seek(target);   
+        }
+        if (arriveEnabled)
+        {
+            force += Arrive(target);
         }
         return force;
     }
@@ -102,7 +115,9 @@ public class BigBoid : MonoBehaviour
         {
             Vector3 tempUp = Vector3.Lerp(transform.up, Vector3.up + (acceleration * banking), Time.deltaTime * 3.0f);
             transform.LookAt(transform.position + velocity, tempUp);
+
             velocity -= (damping * velocity * Time.deltaTime);
+            //transform.forward = velocity;
         }
     }
 }
