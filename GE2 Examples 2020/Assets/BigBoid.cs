@@ -12,17 +12,30 @@ public class BigBoid : MonoBehaviour
 
     public float maxSpeed = 5;
     public float maxForce = 10;
+    public float slowingDist = 1.0f;
+    [Range(0.1f,1.0f)] [SerializeField] private float banking;
 
     public float speed = 0;
+    public float playerForce = 100;
+    public float damping = 1;
 
     public bool seekEnabled = false;
+    public bool arriveEnabled = false;
+    public bool steeringEnabled = false;
     public Vector3 target;
     public Transform targetTransform;
-
+    public Vector3 PlayerSteering()
+    {
+        Vector3 f = Vector3.zero;
+        f += Input.GetAxis("Vertical") * transform.forward * playerForce;
+        Vector3 projectedRight = transform.right;
+        projectedRight.y = 0;
+        projectedRight.x = f.x;
+        return f;
+    }
     // Start is called before the first frame update
     void Start()
     {
-        
     }
 
     public void OnDrawGizmos()
@@ -45,12 +58,22 @@ public class BigBoid : MonoBehaviour
         return desired - velocity;
     }
 
+    Vector3 Arrive(Vector3 target)
+    {
+        Vector3 toTarget = target - transform.position;
+        float dist = toTarget.magnitude;
+        float ramped = dist / slowingDist * maxSpeed;
+        float clamped = Mathf.Min(ramped, maxSpeed);
+        Vector3 desired = (toTarget / dist) * clamped;
+        return desired;
+    }
+
     public Vector3 CalculateForce()
     {
         Vector3 force = Vector3.zero;
         if (seekEnabled)
-        {
-            force += Seek(target);
+        { 
+               force += Seek(target);   
         }
         return force;
     }
@@ -62,15 +85,24 @@ public class BigBoid : MonoBehaviour
         {
             target = targetTransform.position;
         }
+        if(arriveEnabled)
+        {
+            force += Arrive(target);
+        }
+        if(steeringEnabled)
+        {
+            force += PlayerSteering();
+        }
         force = CalculateForce();
         acceleration = force / mass;
         velocity += acceleration * Time.deltaTime;
-
         transform.position += velocity * Time.deltaTime;
         speed = velocity.magnitude;
         if (speed > 0)
         {
-            transform.forward = velocity;
+            Vector3 tempUp = Vector3.Lerp(transform.up, Vector3.up + (acceleration * banking), Time.deltaTime * 3.0f);
+            transform.LookAt(transform.position + velocity, tempUp);
+            velocity -= (damping * velocity * Time.deltaTime);
         }
     }
 }
