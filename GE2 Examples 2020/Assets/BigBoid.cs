@@ -12,24 +12,28 @@ public class BigBoid : MonoBehaviour
 
     public float maxSpeed = 5;
     public float maxForce = 10;
+    public int i;
 
     public float speed = 0;
+    public float dist;
 
     public bool seekEnabled = false;
     public Vector3 target;
-    public Transform targetTransform;
+    public Transform[] targetTransforms;
 
     public bool arriveEnabled = false;
     public bool controlEnabled = false;
+    private bool arrived = false;
     public float slowingDistance = 10;
+    public float changingDistance = 4.0f;
 
-    [Range(0.0f, 10.0f)]
+    [Range(0.0f, 0.2f)]
     public float banking = 0.1f;
 
     // Start is called before the first frame update
     void Start()
     {
-        
+        targetTransforms = GameObject.Find("Targets").GetComponentsInChildren<Transform>();
     }
 
     public Vector3 Control()
@@ -52,13 +56,16 @@ public class BigBoid : MonoBehaviour
         Gizmos.DrawLine(transform.position, transform.position + velocity);
 
         Gizmos.color = Color.magenta;
-        Gizmos.DrawWireSphere(targetTransform.position, slowingDistance);
+        for (int i = 0; i < targetTransforms.Length; i++)
+        {
+            Gizmos.DrawWireSphere(targetTransforms[i].position, slowingDistance);
+        }
     }
 
     Vector3 Arrive(Vector3 target)
     {
         Vector3 toTarget = target - transform.position;
-        float dist = toTarget.magnitude;
+        dist = toTarget.magnitude;
 
         float ramped = (dist / slowingDistance) * maxSpeed;
         float clamped = Mathf.Min(ramped, maxSpeed);
@@ -93,12 +100,24 @@ public class BigBoid : MonoBehaviour
         return force;
     }
 
+    public void Switching()
+    {
+        if (dist <= changingDistance && !arrived)
+        {
+            arrived = true;
+        }
+        else
+        {
+            arrived = false;
+        }
+    }
     // Update is called once per frame
     void Update()
     {
-        if (targetTransform != null)
+        print(i);
+        if (target != null)
         {
-            target = targetTransform.position;
+            target = targetTransforms[i].position;
         }
         force = CalculateForce();
         acceleration = force / mass;
@@ -111,7 +130,20 @@ public class BigBoid : MonoBehaviour
             Vector3 tempUp = Vector3.Lerp(transform.up, Vector3.up + (acceleration * banking), Time.deltaTime * 3.0f);
             transform.LookAt(transform.position + velocity, tempUp);
             //transform.forward = velocity;
+        }
+        Switching();
+        if(arrived)
+        {
+            i += 1;
+            arrived = false;
+        }
+        else if(!arrived)
+        {
 
+        }
+        if(i > (targetTransforms.Length - 1))
+        {
+            i = 0;
         }
     }
 }
