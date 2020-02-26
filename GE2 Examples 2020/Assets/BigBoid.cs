@@ -14,21 +14,34 @@ public class BigBoid : MonoBehaviour
     public float maxForce = 10;
     public int i;
 
-    public float speed = 0;
     public float dist;
 
+    public float slowingDist = 1.0f;
+    [Range(0.1f,1.0f)] [SerializeField] private float banking;
+
+    public float speed = 0;
+    public float playerForce = 100;
+    public float damping = 1;
+
     public bool seekEnabled = false;
+    public bool arriveEnabled = false;
+    public bool steeringEnabled = false;
     public Vector3 target;
     public Transform[] targetTransforms;
 
-    public bool arriveEnabled = false;
-    public bool controlEnabled = false;
-    private bool arrived = false;
+    public Vector3 PlayerSteering()
+    {
+        Vector3 f = Vector3.zero;
+        f += Input.GetAxis("Vertical") * transform.forward * playerForce;
+        Vector3 projectedRight = transform.right;
+        projectedRight.y = 0;
+        projectedRight.x = f.x;
+        return f;
+    }
+
     public float slowingDistance = 10;
     public float changingDistance = 4.0f;
 
-    [Range(0.0f, 0.2f)]
-    public float banking = 0.1f;
 
     // Start is called before the first frame update
     void Start()
@@ -86,16 +99,12 @@ public class BigBoid : MonoBehaviour
     {
         Vector3 force = Vector3.zero;
         if (seekEnabled)
-        {
-            force += Seek(target);
+        { 
+               force += Seek(target);   
         }
         if (arriveEnabled)
         {
             force += Arrive(target);
-        }
-        if(controlEnabled)
-        {
-            force += Control();
         }
         return force;
     }
@@ -111,7 +120,6 @@ public class BigBoid : MonoBehaviour
             arrived = false;
         }
     }
-    // Update is called once per frame
     void Update()
     {
         print(i);
@@ -119,17 +127,23 @@ public class BigBoid : MonoBehaviour
         {
             target = targetTransforms[i].position;
         }
+        if(arriveEnabled)
+        {
+            force += Arrive(target);
+        }
+        if(steeringEnabled)
+        {
+            force += PlayerSteering();
+        }
         force = CalculateForce();
         acceleration = force / mass;
         velocity += acceleration * Time.deltaTime;
-
         transform.position += velocity * Time.deltaTime;
         speed = velocity.magnitude;
         if (speed > 0)
         {
             Vector3 tempUp = Vector3.Lerp(transform.up, Vector3.up + (acceleration * banking), Time.deltaTime * 3.0f);
             transform.LookAt(transform.position + velocity, tempUp);
-            //transform.forward = velocity;
         }
         Switching();
         if(arrived)
@@ -139,7 +153,8 @@ public class BigBoid : MonoBehaviour
         }
         else if(!arrived)
         {
-
+            velocity -= (damping * velocity * Time.deltaTime);
+            //transform.forward = velocity;
         }
         if(i > (targetTransforms.Length - 1))
         {
